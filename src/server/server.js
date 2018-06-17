@@ -8,7 +8,7 @@ const bodyParser = require('body-parser');
 const { authenticate, signToken, verifyToken } = require('./authentication');
 const { errorDispatcher, successDispatcher } = require('./responsedispatcher');
 
-const JWT_KEY = 'secretkey'; //key for jwt auth.
+const JWT_KEY = 'secretkey'; // key for jwt auth.
 
 app.use(bodyParser.json());
 
@@ -54,38 +54,37 @@ app.post('/register', (req, res) => {
 
 app.post('/login', (req, res) => {
 
-    //TODO: FIXME: handle errors, and make async route handlers.
-
-    //login stuff start...
     let { email, password } = req.body;
     let userData = null;
 
-    // check if user exists and his pass matches....
+    // check if user exists and the password matches.
 
     User.findOne({ email })
     .then(user => {
     
       userData = user._doc;
-      console.log('-> Checking if the user exists.');
+      console.log('[?] Checking if the user exists.');
         if (!user) return res.status(404)
                              .send(errorDispatcher('user does not exist',
                                    { key: 'token', data: null }));
         
-      console.log('-> User exists.');
+      console.log('[√] User exists.');
       // checking password
       return bcrypt.compare(password, user.password); //returns a promise.
     })
     .then(doesPassMatch => {
 
-        console.log('-> Checking if password matches.');
+        console.log('[?] Checking if password matches.');
         if (doesPassMatch === false) return res.status(404)
                                                .send(errorDispatcher('password provided is wrong', 
                                                      { key: 'token', data: null }));
 
-        console.log('[√] USER EXISTS AND PASS MATCHES');
+        console.log('[√] Password matches with the database.');
+
+        console.log('[ø] USER EXISTS AND PASS MATCHES');
 
         // jwt generate token:
-        console.log('[GENERATING TOKEN]');
+        console.log('[*] [GENERATING TOKEN]');
 
         res.send(successDispatcher(null,
                  { key: 'token', data: signToken(userData, JWT_KEY)}));
@@ -94,11 +93,7 @@ app.post('/login', (req, res) => {
 
 });
 
-app.post('/logout', (req, res) => {
-
-    // logout stuff
-    // delete token from client's local storage.
-});
+app.post('/logout', (req, res) => { });
 
 app.get('/list', authenticate, (req, res) => {
 
@@ -111,12 +106,11 @@ app.get('/list', authenticate, (req, res) => {
                   .send(errorDispatcher('cannot verify the auth token',
                         { key: 'data', data: null }));
     }
+    console.log(authData); // Verified token data.
 
-    // TODO: make use of authData.
-    console.log(authData);
-
+    // send personal data or manipulate the Db once verified.
     User.find().then(users => res.send(successDispatcher(null, { key: 'users', data: users })))
-               .catch(error => res.status(404).send(error)); //FIXME:
+               .catch(error => res.status(404).send(error));
 });
 
 app.listen(port, () => console.log(`Server is up on port ${port}`));
